@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>MAIRA Auth Hub</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
+:root {
+  --bg: #101419; --panel: #171c23; --panel-2: #1d232c; --panel-3: #252d38;
+  --accent: #ffb547; --accent-2: #6ee7ff; --text: #eef2f7; --muted: #97a2b0;
+  --danger: #ff6b6b; --success: #37d399; --warning: #f97316;
+  --border-soft: rgba(255,255,255,0.08); --border-strong: rgba(255,255,255,0.14);
+  --shadow: rgba(0,0,0,0.2); --tab-active: #ffb547; --tab-inactive: #97a2b0;
+}
+*{box-sizing:border-box;scrollbar-width:thin;scrollbar-color:var(--panel-3) transparent}
+body{margin:0;font-family:'Space Grotesk',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;line-height:1.45}
+header{padding:24px 28px 8px}
+.header-bar{width:min(1320px,100%);margin:0 auto;display:flex;align-items:flex-start;justify-content:space-between;gap:18px}
+.header-kicker{color:var(--accent-2);font-size:11px;font-weight:700;letter-spacing:.18em;text-transform:uppercase}
+h1{margin:0;font-size:26px;font-weight:700;letter-spacing:-.02em}
+.header-sub{color:var(--muted);font-size:13px}
+.tabs{display:flex;gap:0;border-bottom:2px solid var(--border-soft);margin:0 auto;width:min(1320px,100%);padding:0 28px}
+.tab{padding:10px 24px;font-size:14px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;color:var(--tab-inactive);transition:color .15s,border-color .15s;user-select:none}
+.tab:hover{color:var(--text)}.tab.active{color:var(--tab-active);border-bottom-color:var(--tab-active)}
+.tab .badge{display:inline-block;background:var(--panel-3);color:var(--muted);font-size:11px;font-weight:600;padding:1px 7px;border-radius:8px;margin-left:6px}
+.tab.active .badge{background:rgba(255,181,71,.15);color:var(--accent)}
+.container{padding:0 28px 40px;max-width:1376px;margin:0 auto}
+.tab-content{display:none;margin-top:18px}.tab-content.active{display:block}
+.panel{background:var(--panel);border:1px solid var(--border-soft);border-radius:18px;box-shadow:0 8px 24px var(--shadow);padding:18px;margin-bottom:18px}
+.panel-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.panel-title{font-size:15px;font-weight:600}
+.meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px}
+.meta-item{background:var(--panel-2);border:1px solid var(--border-soft);border-radius:12px;padding:10px 14px}
+.meta-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px}
+.meta-value{font-size:18px;font-weight:700;font-family:'JetBrains Mono',monospace}
+.meta-value.ok{color:var(--success)}.meta-value.warn{color:var(--warning)}.meta-value.err{color:var(--danger)}
+.account-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px}
+.account-card{background:var(--panel-2);border:1px solid var(--border-soft);border-radius:14px;padding:14px 16px;transition:border-color .15s}
+.account-card:hover{border-color:var(--border-strong)}
+.account-card.limited{border-color:rgba(255,107,107,.3)}
+.account-card.active-card{border-color:rgba(255,181,71,.4)}
+.card-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.card-alias{font-size:14px;font-weight:600}
+.card-email{font-size:12px;color:var(--muted);margin-bottom:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.card-status{font-size:11px;font-weight:600;padding:2px 8px;border-radius:6px;text-transform:uppercase;letter-spacing:.05em}
+.card-status.ok{background:rgba(55,211,153,.12);color:var(--success)}
+.card-status.limited{background:rgba(255,107,107,.12);color:var(--danger)}
+.card-status.cooldown{background:rgba(249,115,22,.12);color:var(--warning)}
+.card-status.disabled{background:rgba(151,162,176,.12);color:var(--muted)}
+.card-status.invalid{background:rgba(255,107,107,.12);color:var(--danger)}
+.quota-row{display:flex;gap:10px;margin:8px 0;flex-wrap:wrap}
+.quota-item{background:var(--panel-3);border-radius:8px;padding:6px 10px;font-size:12px;flex:1;min-width:100px}
+.quota-label{color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.06em}
+.quota-value{font-family:'JetBrains Mono',monospace;font-weight:600;font-size:14px}
+.quota-value.high{color:var(--success)}.quota-value.medium{color:var(--warning)}.quota-value.low{color:var(--danger)}.quota-value.unknown{color:var(--muted)}
+.quota-reset{font-size:10px;color:var(--muted)}
+.card-stats{display:flex;gap:12px;font-size:12px;color:var(--muted);margin-top:6px}
+.card-stats span{font-family:'JetBrains Mono',monospace;color:var(--text);font-weight:600}
+.card-plan{font-size:11px;color:var(--muted);background:var(--panel-3);padding:2px 8px;border-radius:6px;text-transform:capitalize}
+.btn{padding:6px 14px;border-radius:8px;border:1px solid var(--border-soft);background:var(--panel-3);color:var(--text);font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;transition:background .12s}
+.btn:hover{background:var(--panel-2)}.btn.primary{background:var(--accent);color:#000;border-color:var(--accent)}.btn.primary:hover{opacity:.9}
+.btn.danger{border-color:rgba(255,107,107,.3);color:var(--danger)}.btn.danger:hover{background:rgba(255,107,107,.1)}
+.btn-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.strategy-row{display:flex;align-items:center;gap:10px;margin-bottom:4px}
+.strategy-row label{font-size:12px;color:var(--muted)}
+.strategy-row select{background:var(--panel-3);border:1px solid var(--border-soft);color:var(--text);padding:4px 10px;border-radius:8px;font-family:inherit;font-size:13px}
+.empty{text-align:center;padding:40px 20px;color:var(--muted)}
+.empty-icon{font-size:36px;margin-bottom:8px}
+.notice{font-size:12px;color:var(--muted);padding:6px 0}
+.force-badge{background:rgba(255,181,71,.15);color:var(--accent);font-size:12px;font-weight:600;padding:4px 12px;border-radius:8px;display:inline-flex;align-items:center;gap:6px}
+.force-badge .dot{width:6px;height:6px;border-radius:50%;background:var(--accent);animation:pulse 1.5s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+</style>
+</head>
+<body>
+<header><div class="header-bar">
+<div><div class="header-kicker">MAIRA Auth Hub</div><h1>Account Dashboard</h1><div class="header-sub" id="headerSub">Loading...</div></div>
+<div style="display:flex;gap:8px;align-items:center">
+<div id="forceBadge" style="display:none" class="force-badge"><span class="dot"></span>Force: <span id="forceAlias">—</span></div>
+<button class="btn" onclick="refresh()">↻ Refresh</button></div>
+</div></header>
+<div class="tabs">
+<div class="tab active" data-tab="codex" onclick="switchTab('codex')">Codex <span class="badge" id="codexBadge">0</span></div>
+<div class="tab" data-tab="antigravity" onclick="switchTab('antigravity')">Antigravity <span class="badge" id="antigravityBadge">0</span></div>
+</div>
+<div class="container">
+<div class="tab-content active" id="tab-codex">
+<div class="panel"><div class="meta" id="codexMeta"></div></div>
+<div class="panel"><div class="panel-header"><div class="panel-title">Accounts</div>
+<div class="strategy-row"><label>Strategy:</label><select id="codexStrategy" onchange="setStrategy(this.value)">
+<option value="round-robin">Round-robin</option><option value="least-used">Least-used</option>
+<option value="random">Random</option><option value="weighted-round-robin">Weighted</option>
+</select></div></div><div class="account-grid" id="codexAccounts"></div></div></div>
+<div class="tab-content" id="tab-antigravity">
+<div class="panel"><div class="meta" id="antigravityMeta"></div></div>
+<div class="panel"><div class="panel-header"><div class="panel-title">Accounts</div></div>
+<div class="account-grid" id="antigravityAccounts"><div class="empty"><div class="empty-icon">🚀</div>Antigravity provider not yet configured<br><span class="notice">Coming later</span></div></div></div></div>
+</div>
+<script>
+var API="/api";
+function switchTab(t){document.querySelectorAll(".tab").forEach(function(e){e.classList.toggle("active",e.dataset.tab===t)});document.querySelectorAll(".tab-content").forEach(function(e){e.classList.toggle("active",e.id==="tab-"+t)})}
+function timeAgo(t){if(!t)return"—";var d=Date.now()-t;if(d<6e4)return"just now";if(d<36e5)return Math.floor(d/6e4)+"m ago";if(d<864e5)return Math.floor(d/36e5)+"h ago";return Math.floor(d/864e5)+"d ago"}
+function timeAgoISO(i){return i?timeAgo(new Date(i).getTime()):"—"}
+function formatReset(t){if(!t)return"";var d=t-Date.now();if(d<=0)return"now";if(d<36e5)return Math.ceil(d/6e4)+"m";if(d<864e5)return Math.ceil(d/36e5)+"h";var dt=new Date(t);return dt.toLocaleDateString("en",{day:"numeric",month:"short"})+" "+dt.toLocaleTimeString("en",{hour:"2-digit",minute:"2-digit"})}
+function formatCooldown(t){if(!t||t<Date.now())return null;var d=t-Date.now();if(d<6e4)return Math.ceil(d/1e3)+"s";if(d<36e5)return Math.ceil(d/6e4)+"m";return Math.ceil(d/36e5)+"h"}
+function getAccountStatus(a){if(a.enabled===false)return{label:"Disabled",cls:"disabled"};if(a.authInvalid)return{label:"Invalid",cls:"invalid"};var c=formatCooldown(a.rateLimitedUntil);if(c)return{label:"Cooldown "+c,cls:"cooldown"};return{label:"OK",cls:"ok"}}
+function quotaClass(r,l){if(r==null)return"unknown";var p=l===100?r:(l>0?Math.round(r/l*100):r);if(p>60)return"high";if(p>20)return"medium";return"low"}
+function renderQuota(a){var f=a.fiveHourRemaining,fl=a.fiveHourLimit,fr=a.fiveHourResetAt;var w=a.weeklyRemaining,wl=a.weeklyLimit,wr=a.weeklyResetAt;if(f==null&&w==null)return'<div class="notice" style="margin:6px 0">No rate-limit data yet</div>';var h='<div class="quota-row">';if(f!=null){var p=fl===100?f:(fl>0?Math.round(f/fl*100):f);var disp=fl===100?f+"%":f+" / "+fl;h+='<div class="quota-item"><div class="quota-label">5h limit</div><div class="quota-value '+quotaClass(f,fl)+'">'+disp+'</div>'+(fr?'<div class="quota-reset">resets '+formatReset(fr)+'</div>':"")+'</div>'}else h+='<div class="quota-item"><div class="quota-label">5h limit</div><div class="quota-value unknown">unknown</div></div>';if(w!=null){var wp=wl===100?w:(wl>0?Math.round(w/wl*100):w);var wdisp=wl===100?w+"%":w+" / "+wl;h+='<div class="quota-item"><div class="quota-label">Weekly</div><div class="quota-value '+quotaClass(w,wl)+'">'+wdisp+'</div>'+(wr?'<div class="quota-reset">resets '+formatReset(wr)+'</div>':"")+'</div>'}else h+='<div class="quota-item"><div class="quota-label">Weekly</div><div class="quota-value unknown">unknown</div></div>';h+='</div>';return h}
+function renderCard(a,isA){var s=getAccountStatus(a);var cls=isA?"active-card":(s.cls==="ok"?"":"limited");return'<div class="account-card '+cls+'"><div class="card-top"><div class="card-alias">'+a.alias+'</div><div class="card-status '+s.cls+'">'+s.label+'</div></div><div class="card-email">'+(a.email||"—")+'</div><div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span class="card-plan">'+(a.planType||"?")+"</span>"+(isA?'<span style="color:var(--accent);font-size:11px;font-weight:600">● ACTIVE</span>':"")+"</div>"+renderQuota(a)+'<div class="card-stats">Used: <span>'+(a.usageCount||0)+"</span> · Last: <span>"+timeAgo(a.lastUsed)+"</span> · Refresh: <span>"+timeAgoISO(a.lastRefresh)+'</span></div><div class="btn-row"><button class="btn" onclick="forceAccount(\u0027'+a.alias+'\u0027)">Force</button><button class="btn" onclick="toggleAccount(\u0027'+a.alias+'\u0027,'+(a.enabled!==false)+')">'+(a.enabled!==false?"Disable":"Enable")+'</button><button class="btn danger" onclick="removeAccount(\u0027'+a.alias+'\u0027)">Remove</button></div></div>'}
+function renderMeta(cid,accs){var el=document.getElementById(cid);var now=Date.now();var t=accs.length;var ac=accs.filter(function(a){return a.enabled!==false&&!a.authInvalid&&(!a.rateLimitedUntil||a.rateLimitedUntil<now)}).length;var lim=accs.filter(function(a){return a.rateLimitedUntil&&a.rateLimitedUntil>now}).length;var inv=accs.filter(function(a){return a.authInvalid}).length;el.innerHTML='<div class="meta-item"><div class="meta-label">Total</div><div class="meta-value">'+t+'</div></div><div class="meta-item"><div class="meta-label">Active</div><div class="meta-value ok">'+ac+'</div></div><div class="meta-item"><div class="meta-label">Limited</div><div class="meta-value '+(lim?"warn":"")+'">'+lim+'</div></div><div class="meta-item"><div class="meta-label">Invalid</div><div class="meta-value '+(inv?"err":"")+'">'+inv+'</div></div>'}
+async function refresh(){try{var sr=await fetch(API+"/status").then(function(r){return r.json()});var ar=await fetch(API+"/accounts").then(function(r){return r.json()});var ca=ar.codex||[];var aa=ar.antigravity||[];var st=sr.strategy||"round-robin";var fc=sr.forcedAlias;document.getElementById("headerSub").textContent="Strategy: "+st+(fc?" · Forced: "+fc:"");document.getElementById("forceBadge").style.display=fc?"":"none";if(fc)document.getElementById("forceAlias").textContent=fc;document.getElementById("codexStrategy").value=st;document.getElementById("codexBadge").textContent=ca.length;document.getElementById("antigravityBadge").textContent=aa.length;renderMeta("codexMeta",ca);var cg=document.getElementById("codexAccounts");if(ca.length===0)cg.innerHTML='<div class="empty"><div class="empty-icon">📭</div>No Codex accounts<br><span class="notice">Run: maira-auth-hub import</span></div>';else cg.innerHTML=ca.map(function(a){return renderCard(a,a.alias===sr.activeAlias)}).join("");renderMeta("antigravityMeta",aa)}catch(e){document.getElementById("headerSub").textContent="Error: "+e.message}}
+async function forceAccount(a){await fetch(API+"/force",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({alias:a})});refresh()}
+async function toggleAccount(a,e){await fetch(API+"/accounts/"+a,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({enabled:!e})});refresh()}
+async function removeAccount(a){if(!confirm('Remove account "'+a+'"?"'))return;await fetch(API+"/accounts/"+a,{method:"DELETE"});refresh()}
+async function setStrategy(s){await fetch(API+"/strategy",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({strategy:s})});refresh()}
+refresh();setInterval(refresh,5000);
+</script>
+</body>
+</html>
