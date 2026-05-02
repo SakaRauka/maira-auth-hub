@@ -5,12 +5,16 @@ import { addAccount, loadStore, saveStore } from './store.js'
 
 /**
  * Import accounts from opencode's codex-accounts.json format into maira-auth-hub store.
+ * Also imports rate-limit snapshots from opencode's codex-snapshots.json cache.
  * 
- * opencode format:
+ * opencode accounts format:
  * { "openai": { "type": "oauth", "accounts": [{ accountId, email, plan, enabled, refresh, access, expires, ... }] } }
  * 
+ * opencode snapshots format:
+ * { "accountId|email|plan": { "updatedAt", "limits": [{"name":"requests", "leftPct":88, "resetsAt":...}] } }
+ * 
  * maira-auth-hub format:
- * { accounts: { alias: { accessToken, refreshToken, accountId, email, planType, expiresAt, ... } } }
+ * { accounts: { alias: { accessToken, refreshToken, accountId, email, planType, expiresAt, rateLimits?: {...}, ... } } }
  */
 
 interface OpenCodeAccount {
@@ -33,6 +37,58 @@ interface OpenCodeStore {
   }
 }
 
+interface OpenCodeSnapshot {
+  updatedAt: number
+  modelFamily?: string
+  limits: Array<{
+    name: string
+    leftPct: number
+    resetsAt: number
+  }>
+}
+
+type OpenCodeSnapshots = Record<string, OpenCodeSnapshot>
+
+/**
+ * Load rate-limit snapshots from opencode's cache.
+ * Key format: "accountId|email|planType"
+ */
+function loadSnapshots(): OpenCodeSnapshots {
+  const snapPath = path.join(os.homedir(), '.config', 'opencode', 'cache', 'codex-snapshots.json')
+  if (!fs.existsSync(snapPath)) {
+    console.warn('[import] No snapshots file at', snapPath)
+    return {}
+  }
+  try {
+    return JSON.parse(fs.readFileSync(snapPath, 'utf-8')) as OpenCodeSnapshots
+  } catch (err) {
+    console.warn('[import] Failed to parse snapshots:', err)
+    return {}
+  }
+}
+
+/**
+ * Convert opencode snapshot format to hub rateLimits format.
+ */
+function snapshotToRateLimits(snap: OpenCodeSnapshot) {
+  const fiveHour = snap.limits.find(l => l.name === 'requests')
+  if (!fiveHour) return undefined
+
+  return {
+    fiveHour: {
+      updatedAt: snap.updatedAt,
+      resetAt: fiveHour.resetsAt,
+      limit: 100,
+      remaining: fiveHour.leftPct,
+    },
+    weekly: {
+      updatedAt: snap.updatedAt,
+      limit: 100,
+      remaining: 100, // opencode doesn't track weekly quota per snapshot
+    },
+  }
+}
+
 export function importFromOpenCode(): { imported: number; skipped: number; aliases: string[] } {
   const openCodePath = path.join(os.homedir(), '.config', 'opencode', 'codex-accounts.json')
   
@@ -47,6 +103,12 @@ export function importFromOpenCode(): { imported: number; skipped: number; alias
   } catch (err) {
     console.error(`[import] Failed to parse ${openCodePath}:`, err)
     return { imported: 0, skipped: 0, aliases: [] }
+  }
+
+  // Load rate-limit snapshots
+  const snapshots = loadSnapshots()
+  if (Object.keys(snapshots).length > 0) {
+    console.log(`[import] Loaded ${Object.keys(snapshots).length} rate-limit snapshots`)
   }
 
   const store = loadStore()
@@ -81,6 +143,12 @@ export function importFromOpenCode(): { imported: number; skipped: number; alias
       if (!alias) { skipped++; continue }
 
       const now = Date.now()
+
+      // Look up rate-limit snapshot: opencode uses "accountId|email|plan" as key
+      const snapshotKey = `${acc.accountId}|${acc.email}|${acc.plan}`
+      const snap = snapshots[snapshotKey]
+      const rateLimits = snap ? snapshotToRateLimits(snap) : undefined
+
       store.accounts[alias] = {
         alias,
         accessToken: acc.access,
@@ -96,12 +164,18 @@ export function importFromOpenCode(): { imported: number; skipped: number; alias
         authInvalid: false,
         source: 'codex',
         rateLimitedUntil: acc.cooldownUntil && acc.cooldownUntil > now ? acc.cooldownUntil : undefined,
+        rateLimits: rateLimits as any,
+      }
+
+      if (rateLimits) {
+        console.log(`[import] ${alias}: ${acc.email} (${acc.plan}) + snapshot (5h: ${rateLimits.fiveHour.remaining}%)`)
+      } else {
+        console.log(`[import] ${alias}: ${acc.email} (${acc.plan})`)
       }
 
       existingAliases.add(alias)
       aliases.push(alias)
       imported++
-      console.log(`[import] ${alias}: ${acc.email} (${acc.plan})`)
     }
   }
 
